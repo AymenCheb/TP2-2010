@@ -78,7 +78,7 @@ public class HashMap<KeyType, DataType> {
      * reassigns all contained values within the new map
      */
     private void rehash() {
-        var newMap = new Node[capacity * CAPACITY_INCREASE_FACTOR];
+        Node[] newMap = new Node[capacity * CAPACITY_INCREASE_FACTOR];
         for (int i = 0; i < map.length; i++) {
             newMap[i] = map[i];
         }
