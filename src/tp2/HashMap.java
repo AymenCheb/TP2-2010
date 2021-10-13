@@ -6,7 +6,7 @@ public class HashMap<KeyType, DataType> {
     private static final float DEFAULT_LOAD_FACTOR = 0.5f;
     private static final int CAPACITY_INCREASE_FACTOR = 2;
 
-    private Node<KeyType, DataType>[] map;
+    private Node[] map;
     private int size = 0;
     private int capacity;
     private final float loadFactor; // Compression factor
@@ -78,7 +78,11 @@ public class HashMap<KeyType, DataType> {
      * reassigns all contained values within the new map
      */
     private void rehash() {
-        return;
+        var newMap = new Node[capacity * CAPACITY_INCREASE_FACTOR];
+        for (int i = 0; i < map.length; i++) {
+            newMap[i] = map[i];
+        }
+        map = newMap;
     }
 
     /** TODO
@@ -87,6 +91,8 @@ public class HashMap<KeyType, DataType> {
      * @return if key is already used in map
      */
     public boolean containsKey(KeyType key) {
+        if(map[hash(key)] != null)
+            return true;
         return false;
     }
 
@@ -96,6 +102,9 @@ public class HashMap<KeyType, DataType> {
      * @return DataType instance attached to key (null if not found)
      */
     public DataType get(KeyType key) {
+        if(containsKey(key)){
+            return  (DataType) map[hash(key)].data;
+        }
         return null;
     }
 
@@ -105,7 +114,22 @@ public class HashMap<KeyType, DataType> {
      * @return Old DataType instance at key (null if none existed)
      */
     public DataType put(KeyType key, DataType value) {
-        return null;
+        int keyIndex = hash(key);
+        DataType oldValue = null;
+
+        if(map[keyIndex] != null ){
+            if(map[keyIndex].key == key){
+                oldValue = (DataType) map[keyIndex].data;
+                map[keyIndex].data = value;
+            }
+
+        } else {
+            map[keyIndex] = new Node(key, value);
+            if(needRehash())
+                rehash();
+            size++;
+        }
+        return oldValue;
     }
 
     /**TODO
@@ -114,13 +138,38 @@ public class HashMap<KeyType, DataType> {
      * @return Old DataType instance at key (null if none existed)
      */
     public DataType remove(KeyType key) {
-        return null;
+        int keyIndex = hash(key);
+        DataType oldValue = null;
+        if(map[keyIndex] != null){
+            oldValue = (DataType) map[keyIndex].data;
+            if(keyIndex!=0){
+                if(map[keyIndex-1] != null)
+                    map[keyIndex-1].next = map[keyIndex].next;
+            }
+
+            for (int i = keyIndex+1; i < map.length; i++){
+                if(map[i] != null){
+                    if(map[i].next != null) {
+                        map[i].next = map[i].next.next;
+                    }
+                }
+
+            }
+
+            map[keyIndex] = null;
+            size--;
+        }
+        return oldValue;
     }
 
     /**TODO
      * Removes all nodes contained within the map
      */
     public void clear() {
+        for(var node: map){
+            if(node != null)
+                remove((KeyType) node.key);
+        }
     }
 
     /**
