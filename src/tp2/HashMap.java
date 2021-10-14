@@ -78,11 +78,25 @@ public class HashMap<KeyType, DataType> {
      * reassigns all contained values within the new map
      */
     private void rehash() {
-        Node[] newMap = new Node[capacity * CAPACITY_INCREASE_FACTOR];
+        /*Node[] newMap = new Node[capacity * CAPACITY_INCREASE_FACTOR];
         for (int i = 0; i < map.length; i++) {
             newMap[i] = map[i];
         }
-        map = newMap;
+        map = newMap;*/
+        Node[] oldMap = map.clone();
+        clear();
+        capacity *= CAPACITY_INCREASE_FACTOR;
+        map = new Node[capacity];
+
+        /*for(int i = 0; i < oldMap.length; i++){
+            if(oldMap[i] != null) {
+                put((KeyType) oldMap[i].key, (DataType) oldMap[i].data);
+            }
+        }*/
+        for(Node node : oldMap){
+            if(node != null)
+                put((KeyType) node.key, (DataType) node.data);
+        }
     }
 
     /** TODO
@@ -91,8 +105,14 @@ public class HashMap<KeyType, DataType> {
      * @return if key is already used in map
      */
     public boolean containsKey(KeyType key) {
-        if(map[hash(key)] != null)
-            return true;
+        int keyIndex = hash(key);
+        DataType removedValue = null;
+        Node<KeyType, DataType> node = map[keyIndex];
+        while(node != null) {
+            if (node.key.equals(key))
+                return true;
+            node = node.next;
+        }
         return false;
     }
 
@@ -102,10 +122,17 @@ public class HashMap<KeyType, DataType> {
      * @return DataType instance attached to key (null if not found)
      */
     public DataType get(KeyType key) {
-        if(containsKey(key)){
-            return  (DataType) map[hash(key)].data;
+        DataType value = null;
+        int keyIndex = hash(key);
+        Node<KeyType, DataType> node = map[keyIndex];
+        while(node != null){
+            if(node.key.equals(key)){
+                value = node.data;
+                break;
+            }
+            node = node.next;
         }
-        return null;
+        return value;
     }
 
     /**TODO
@@ -117,17 +144,27 @@ public class HashMap<KeyType, DataType> {
         int keyIndex = hash(key);
         DataType oldValue = null;
 
-        if(map[keyIndex] != null ){
-            if(map[keyIndex].key == key){
-                oldValue = (DataType) map[keyIndex].data;
-                map[keyIndex].data = value;
-            }
-
-        } else {
+        if(map[keyIndex] == null) {
             map[keyIndex] = new Node(key, value);
-            if(needRehash())
-                rehash();
             size++;
+            if (needRehash())
+                rehash();
+        }else{
+            size++;
+            Node<KeyType, DataType> nodePrecedente = null;
+            Node<KeyType, DataType> node = map[keyIndex];
+            while(node != null){
+                if(node.key.equals(key)){
+                    size--; // key already existed
+                    oldValue = node.data;
+                    node.data = value;
+                    break;
+                }
+                nodePrecedente = node;
+                node = node.next;
+            }
+            if(nodePrecedente != null)
+                nodePrecedente.next = new Node(key, value);
         }
         return oldValue;
     }
@@ -139,27 +176,28 @@ public class HashMap<KeyType, DataType> {
      */
     public DataType remove(KeyType key) {
         int keyIndex = hash(key);
-        DataType oldValue = null;
-        if(map[keyIndex] != null){
-            oldValue = (DataType) map[keyIndex].data;
-            if(keyIndex!=0){
-                if(map[keyIndex-1] != null)
-                    map[keyIndex-1].next = map[keyIndex].next;
-            }
-
-            for (int i = keyIndex+1; i < map.length; i++){
-                if(map[i] != null){
-                    if(map[i].next != null) {
-                        map[i].next = map[i].next.next;
-                    }
+        DataType removedValue = null;
+        Node<KeyType, DataType> precedente = null;
+        Node<KeyType, DataType> node = map[keyIndex];
+        while(node != null) {
+            if (node.key.equals(key)) {
+                if (precedente == null) {
+                    removedValue = node.data;
+                    node = node.next;
+                    map[keyIndex] = node;
+                    size--;
+                    return removedValue;
+                } else {
+                    removedValue = node.data;
+                    precedente.next = node.next;
+                    size--;
+                    return removedValue;
                 }
-
             }
-
-            map[keyIndex] = null;
-            size--;
+            precedente = node;
+            node = node.next;
         }
-        return oldValue;
+        return removedValue;
     }
 
     /**TODO
